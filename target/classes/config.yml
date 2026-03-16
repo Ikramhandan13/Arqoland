@@ -1,0 +1,27 @@
+database:
+  host: "127.0.0.1"
+  port: 3306
+  name: "arqoland"
+  username: "root"
+  password: ""
+  pool-size: 10
+
+limits:
+  default-max-lands: 1
+  default-max-members: 5
+  max-claim-size: 25
+
+taxes:
+  enabled: true
+  grace-period-days: 7
+  diamond-cost-per-week: 70
+
+discord-webhook:
+  enabled: false
+  url: "https://discord.com/api/webhooks/xxxx/xxxx"
+  embed-color: "#FF0000"
+
+visuals:
+  border-particles: true
+  welcome-title-enabled: true
+  default-greeting: "&eSelamat Datang di {land_name}"

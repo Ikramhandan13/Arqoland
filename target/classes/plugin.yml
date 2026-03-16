@@ -1,0 +1,8 @@
+name: ArqoLand
+version: '${project.version}'
+main: dev.arqo.land.ArqoLand
+api-version: '1.20'
+folia-supported: true
+authors: [Dzakiri]
+description: Enterprise Land Claiming System for Folia
+depend: [PlaceholderAPI]
