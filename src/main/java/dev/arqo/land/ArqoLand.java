@@ -11,8 +11,9 @@ import dev.arqo.land.managers.DiscordWebhookManager;
 import dev.arqo.land.managers.EconomyManager;
 import dev.arqo.land.managers.FlagManager;
 import dev.arqo.land.managers.PerkManager;
+import dev.arqo.land.managers.TurretManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import revxrsal.commands.bukkit.BukkitCommandHandler;
+import revxrsal.commands.bukkit.BukkitLamp;
 
 public class ArqoLand extends JavaPlugin {
 
@@ -77,16 +78,16 @@ public class ArqoLand extends JavaPlugin {
     }
 
     private void registerCommands() {
-        // Menggunakan Revxrsal Lamp untuk membaca command
-        BukkitCommandHandler handler = BukkitCommandHandler.create(this);
+        // Menggunakan Revxrsal Lamp v4
+        BukkitLamp lamp = BukkitLamp.builder(this).build();
         
-        handler.register(new LandCommand(this, this.chunkManager, this.economyManager));
-        handler.register(new AdminLandCommand(this, this.chunkManager));
+        lamp.register(new LandCommand(this, this.chunkManager, this.economyManager));
+        lamp.register(new AdminLandCommand(this));
     }
 
     private void registerListeners() {
         // Mendaftarkan perlindungan dan event pemain ke server
-        getServer().getPluginManager().registerEvents(new ProtectionListener(this.chunkManager, this.flagManager), this);
+        getServer().getPluginManager().registerEvents(new ProtectionListener(this.chunkManager, this.flagManager, this.turretManager), this);
         getServer().getPluginManager().registerEvents(new RaidListener(this.chunkManager, this.webhookManager), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(this, this.chunkManager, this.perkManager), this);
         getServer().getPluginManager().registerEvents(this.perkManager, this); // Baru: Untuk Crop Boost
@@ -94,5 +95,8 @@ public class ArqoLand extends JavaPlugin {
 
     public static ArqoLand getInstance() { return instance; }
     public DatabaseManager getDatabaseManager() { return databaseManager; }
+    public ChunkManager getChunkManager() { return chunkManager; }
+    public TurretManager getTurretManager() { return turretManager; }
+    public PerkManager getPerkManager() { return perkManager; }
     public boolean isFolia() { return isFolia; }
 }

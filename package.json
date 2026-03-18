@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "mineflayer": "^4.35.0",
+    "socks": "^2.8.7"
+  }
+}

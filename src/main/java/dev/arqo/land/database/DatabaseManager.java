@@ -47,6 +47,8 @@ public class DatabaseManager {
             stmt.execute(Queries.CREATE_CHUNKS_TABLE);
             stmt.execute(Queries.CREATE_MEMBERS_TABLE);
             stmt.execute(Queries.CREATE_ALLIANCES_TABLE);
+            stmt.execute(Queries.CREATE_ENEMIES_TABLE);
+            stmt.execute(Queries.CREATE_TURRETS_TABLE);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -63,6 +65,7 @@ public class DatabaseManager {
                 UUID owner = UUID.fromString(rs.getString("owner_uuid"));
 
                 ClaimData claim = new ClaimData(id, name, owner);
+                claim.setDisplayName(rs.getString("display_name"));
                 claim.setHealth(rs.getInt("health"));
                 claim.setMaxHealth(rs.getInt("max_health"));
                 claim.setDiamondBalance(rs.getInt("diamond_balance"));
@@ -70,6 +73,7 @@ public class DatabaseManager {
                 claim.setGreetingMessage(rs.getString("greeting_message"));
                 claim.setPublic(rs.getBoolean("is_public"));
                 claim.setCreatedAt(rs.getTimestamp("created_at"));
+                claim.setLastActive(rs.getTimestamp("last_active"));
                 
                 String sWorld = rs.getString("spawn_world");
                 if (sWorld != null) {
@@ -116,10 +120,134 @@ public class DatabaseManager {
                 }
             }
         }
+        // Baru: Load Turret
+        try (PreparedStatement stmt = conn.prepareStatement(Queries.LOAD_LAND_TURRETS)) {
+            stmt.setInt(1, claim.getId());
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    org.bukkit.World world = org.bukkit.Bukkit.getWorld(rs.getString("world"));
+                    if (world != null) {
+                        claim.getTurretLocations().add(new org.bukkit.Location(world, rs.getInt("x"), rs.getInt("y"), rs.getInt("z")));
+                    }
+                }
+            }
+        }
+        // Baru: Load Enemy
+        try (PreparedStatement stmt = conn.prepareStatement(Queries.LOAD_LAND_ENEMIES)) {
+            stmt.setInt(1, claim.getId());
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    claim.getEnemyLands().add(rs.getInt("enemy_land_id"));
+                }
+            }
+        }
+    }
+
+    public int createLand(String name, UUID owner, String displayName) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.INSERT_LAND, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, name);
+            stmt.setString(2, owner.toString());
+            stmt.setString(3, displayName);
+            stmt.executeUpdate();
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    public void insertChunk(int landId, String world, int x, int z) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.INSERT_CHUNK)) {
+            stmt.setInt(1, landId);
+            stmt.setString(2, world);
+            stmt.setInt(3, x);
+            stmt.setInt(4, z);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteChunk(String world, int x, int z) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.DELETE_CHUNK)) {
+            stmt.setString(1, world);
+            stmt.setInt(2, x);
+            stmt.setInt(3, z);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void insertTurret(int landId, org.bukkit.Location loc) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.INSERT_TURRET)) {
+            stmt.setInt(1, landId);
+            stmt.setString(2, loc.getWorld().getName());
+            stmt.setInt(3, loc.getBlockX());
+            stmt.setInt(4, loc.getBlockY());
+            stmt.setInt(5, loc.getBlockZ());
+            stmt.executeUpdate();
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteTurret(org.bukkit.Location loc) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.DELETE_TURRET)) {
+            stmt.setString(1, loc.getWorld().getName());
+            stmt.setInt(2, loc.getBlockX());
+            stmt.setInt(3, loc.getBlockY());
+            stmt.setInt(4, loc.getBlockZ());
+            stmt.executeUpdate();
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void saveMember(int landId, LandMember member) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.INSERT_MEMBER)) {
+            stmt.setInt(1, landId);
+            stmt.setString(2, member.getUuid().toString());
+            stmt.setString(3, member.getRole());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void removeMember(int landId, UUID playerUuid) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.DELETE_MEMBER)) {
+            stmt.setInt(1, landId);
+            stmt.setString(2, playerUuid.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateMemberRole(int landId, LandMember member) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.UPDATE_MEMBER_ROLE)) {
+            stmt.setString(1, member.getRole());
+            stmt.setInt(2, landId);
+            stmt.setString(3, member.getUuid().toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void saveMemberContribution(int landId, LandMember member) {
-        try (Connection conn = getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(Queries.UPDATE_MEMBER_CONTRIBUTION)) {
             stmt.setInt(1, member.getTotalContributed());
             stmt.setInt(2, landId);
@@ -129,6 +257,7 @@ public class DatabaseManager {
             e.printStackTrace();
         }
     }
+
 
     public void saveLand(ClaimData claim) {
         try (Connection conn = getConnection();
@@ -157,10 +286,82 @@ public class DatabaseManager {
             stmt.setInt(19, claim.getPerkStrength());
             stmt.setInt(20, claim.getPerkJump());
             stmt.setInt(21, claim.getPerkCrop());
-            stmt.setInt(22, claim.getId());
+            stmt.setString(22, claim.getDisplayName());
+            stmt.setInt(23, claim.getTurretLevel());
+            stmt.setBoolean(24, claim.isTurretAmmoFree());
+            stmt.setInt(25, claim.getId());
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
+    public void saveAlly(int landId, int allyLandId) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.INSERT_ALLY)) {
+            stmt.setInt(1, landId);
+            stmt.setInt(2, allyLandId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void removeAlly(int landId, int allyLandId) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.DELETE_ALLY)) {
+            stmt.setInt(1, landId);
+            stmt.setInt(2, allyLandId);
+            stmt.setInt(3, allyLandId);
+            stmt.setInt(4, landId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void saveEnemy(int landId, int enemyLandId) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.INSERT_ENEMY)) {
+            stmt.setInt(1, landId);
+            stmt.setInt(2, enemyLandId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void removeEnemy(int landId, int enemyLandId) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.DELETE_ENEMY)) {
+            stmt.setInt(1, landId);
+            stmt.setInt(2, enemyLandId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteLand(int id) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.DELETE_LAND)) {
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteInactiveLands(int days) {
+            long threshold = System.currentTimeMillis() - (days * 24L * 60L * 60L * 1000L);
+            Timestamp timestamp = new Timestamp(threshold);
+            try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(Queries.DELETE_INACTIVE_LANDS)) {
+            stmt.setTimestamp(1, timestamp);
+            stmt.executeUpdate();
+            } catch (SQLException e) {
+            e.printStackTrace();
+            }
+            }
+
 }

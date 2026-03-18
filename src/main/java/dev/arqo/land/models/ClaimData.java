@@ -10,14 +10,16 @@ import java.sql.Timestamp;
 public class ClaimData {
     private final int id;
     private final String name;
+    private String displayName;
     private final UUID owner;
-    private int health;
-    private int maxHealth;
-    private int diamondBalance;
-    private boolean pvpEnabled;
+    private volatile int health;
+    private volatile int maxHealth;
+    private volatile int diamondBalance;
+    private volatile boolean pvpEnabled;
     private String greetingMessage;
-    private boolean isPublic;
+    private volatile boolean isPublic;
     private Timestamp createdAt;
+    private Timestamp lastActive;
 
     // Spawn Location
     private String spawnWorld;
@@ -35,8 +37,12 @@ public class ClaimData {
     private int perkJump;
     private int perkCrop;
 
+    private int turretLevel;
+    private boolean turretAmmoFree;
+
     private final Set<LandMember> members;
     private final Set<Integer> alliedLands;
+    private final Set<Integer> enemyLands;
     private final Set<String> chunkKeys;
     private final Set<Location> turretLocations;
 
@@ -46,13 +52,17 @@ public class ClaimData {
         this.owner = owner;
         this.members = ConcurrentHashMap.newKeySet();
         this.alliedLands = ConcurrentHashMap.newKeySet();
+        this.enemyLands = ConcurrentHashMap.newKeySet();
         this.chunkKeys = ConcurrentHashMap.newKeySet();
         this.turretLocations = ConcurrentHashMap.newKeySet();
+        this.lastActive = new Timestamp(System.currentTimeMillis());
     }
 
     // Getters and Setters
     public int getId() { return id; }
     public String getName() { return name; }
+    public String getDisplayName() { return displayName == null ? name : displayName; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
     public UUID getOwner() { return owner; }
     public int getHealth() { return health; }
     public void setHealth(int health) { this.health = health; }
@@ -68,6 +78,9 @@ public class ClaimData {
     public void setPublic(boolean isPublic) { this.isPublic = isPublic; }
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
+    public Timestamp getLastActive() { return lastActive; }
+    public void setLastActive(Timestamp lastActive) { this.lastActive = lastActive; }
+    public void updateLastActive() { this.lastActive = new Timestamp(System.currentTimeMillis()); }
 
     public void setSpawn(Location loc) {
         if (loc == null) return;
@@ -121,8 +134,14 @@ public class ClaimData {
     public int getPerkCrop() { return perkCrop; }
     public void setPerkCrop(int perkCrop) { this.perkCrop = perkCrop; }
 
+    public int getTurretLevel() { return turretLevel; }
+    public void setTurretLevel(int turretLevel) { this.turretLevel = turretLevel; }
+    public boolean isTurretAmmoFree() { return turretAmmoFree; }
+    public void setTurretAmmoFree(boolean turretAmmoFree) { this.turretAmmoFree = turretAmmoFree; }
+
     public Set<LandMember> getMembers() { return members; }
     public Set<Integer> getAlliedLands() { return alliedLands; }
+    public Set<Integer> getEnemyLands() { return enemyLands; }
     public Set<String> getChunkKeys() { return chunkKeys; }
     public Set<Location> getTurretLocations() { return turretLocations; }
 

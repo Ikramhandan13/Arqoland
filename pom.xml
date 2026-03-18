@@ -6,7 +6,7 @@
 
     <groupId>dev.arqo</groupId>
     <artifactId>ArqoLand</artifactId>
-    <version>1.0.0-ENTERPRISE</version>
+    <version>1.1.0-ENTERPRISE</version>
 
     <properties>
         <java.version>21</java.version>
@@ -15,80 +15,68 @@
 
     <repositories>
         <repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
-        </repository>
-        <repository>
-            <id>papermc</id>
-            <url>https://repo.papermc.io/repository/maven-public/</url>
-        </repository>
-        <repository>
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
-        </repository>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 
     <dependencies>
+        <!-- Local Dependencies -->
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.20.1-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.21.1-R0.1-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/paper-api-1.21.1-R0.1-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>io.github.retrooper</groupId>
+            <artifactId>packetevents</artifactId>
+            <version>2.11.2</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/packetevents.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>io.github.revxrsal</groupId>
+            <artifactId>lamp.common</artifactId>
+            <version>4.0.0-rc.16</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/lamp.common-4.0.0-rc.16.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>io.github.revxrsal</groupId>
+            <artifactId>lamp.bukkit</artifactId>
+            <version>4.0.0-rc.16</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/lamp.bukkit-4.0.0-rc.16.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.github.stefvanschie</groupId>
+            <artifactId>IF</artifactId>
+            <version>0.11.6</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/IF-0.11.6.jar</systemPath>
         </dependency>
 
+        <!-- Remote Dependencies -->
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.6</version>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>5.1.0</version>
             <scope>compile</scope>
         </dependency>
-
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
             <version>3.3.3</version>
             <scope>compile</scope>
         </dependency>
-        
-        <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>3.45.1.0</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.stefvanschie.inventoryframework</groupId>
-            <artifactId>IF</artifactId>
-            <version>0.10.16</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-    <groupId>com.github.Revxrsal.Lamp</groupId>
-    <artifactId>common</artifactId>
-    <version>3.2.1</version>
-    <scope>compile</scope>
-</dependency>
-<dependency>
-    <groupId>com.github.Revxrsal.Lamp</groupId>
-    <artifactId>bukkit</artifactId>
-    <version>3.2.1</version>
-    <scope>compile</scope>
-</dependency>
-
-
     </dependencies>
 
     <build>
@@ -126,6 +114,10 @@
                                 <relocation>
                                     <pattern>revxrsal.commands</pattern>
                                     <shadedPattern>dev.arqo.land.libs.lamp</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.github.retrooper.packetevents</pattern>
+                                    <shadedPattern>dev.arqo.land.libs.packetevents</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

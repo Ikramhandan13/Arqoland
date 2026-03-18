@@ -56,14 +56,136 @@ public class EconomyManager {
         gui.setOnGlobalClick(event -> event.setCancelled(true));
 
         StaticPane pane = new StaticPane(0, 0, 9, 3);
-
-        // Opsi Tarik 16, 32, 64
         addWithdrawItem(pane, 16, 2, 1, player, claimData);
         addWithdrawItem(pane, 32, 4, 1, player, claimData);
         addWithdrawItem(pane, 64, 6, 1, player, claimData);
 
         gui.addPane(pane);
         gui.show(player);
+    }
+
+    public void openUpgradeGui(Player player, ClaimData claimData) {
+        if (claimData == null) {
+            player.sendMessage("§cKamu tidak berada di wilayah manapun!");
+            return;
+        }
+
+        ChestGui gui = new ChestGui(3, "Upgrade Wilayah: " + claimData.getName());
+        gui.setOnGlobalClick(event -> event.setCancelled(true));
+
+        StaticPane pane = new StaticPane(0, 0, 9, 3);
+
+        addUpgradeItem(pane, Material.GOLDEN_PICKAXE, "Haste", claimData.getPerkHaste(), 0, 0, player, claimData);
+        addUpgradeItem(pane, Material.SUGAR, "Speed", claimData.getPerkSpeed(), 1, 0, player, claimData);
+        addUpgradeItem(pane, Material.DIAMOND_SWORD, "Strength", claimData.getPerkStrength(), 2, 0, player, claimData);
+        addUpgradeItem(pane, Material.RABBIT_FOOT, "Jump", claimData.getPerkJump(), 3, 0, player, claimData);
+        addUpgradeItem(pane, Material.WHEAT, "Crop", claimData.getPerkCrop(), 4, 0, player, claimData);
+        addUpgradeItem(pane, Material.ENCHANTED_GOLDEN_APPLE, "Heart", (claimData.getMaxHealth() / 500) - 1, 6, 0, player, claimData);
+        addUpgradeItem(pane, Material.DISPENSER, "Turret", claimData.getTurretLevel(), 8, 0, player, claimData);
+        
+        // Upgrade Infinity Ammo
+        int infCost = plugin.getConfig().getInt("upgrades.turret.infinity-ammo", 7000);
+        ItemStack infinityItem = new ItemStack(Material.SPECTRAL_ARROW);
+        ItemMeta infMeta = infinityItem.getItemMeta();
+        if (infMeta != null) {
+            infMeta.setDisplayName("§b§lInfinity Turret Ammo");
+            infMeta.setLore(Arrays.asList(
+                "§7Status: " + (claimData.isTurretAmmoFree() ? "§aAKTIF" : "§cNONAKTIF"),
+                "§7Kegunaan: §fTurret tidak butuh isi panah lagi.",
+                "§7Biaya: §b" + infCost + " Diamond (Brankas)",
+                "",
+                claimData.isTurretAmmoFree() ? "§aSudah dimiliki" : "§eKlik untuk beli!"
+            ));
+            infinityItem.setItemMeta(infMeta);
+        }
+        pane.addItem(new GuiItem(infinityItem, event -> {
+            if (claimData.isTurretAmmoFree()) return;
+            if (claimData.getDiamondBalance() < infCost) {
+                player.sendMessage("§cSaldo brankas tidak cukup!");
+                return;
+            }
+            claimData.setDiamondBalance(claimData.getDiamondBalance() - infCost);
+            claimData.setTurretAmmoFree(true);
+            plugin.getChunkManager().saveLandAsync(claimData);
+            player.sendMessage("§a[Upgrade] §fTurret sekarang memiliki §bInfinity Ammo§f!");
+            player.closeInventory();
+        }), 4, 2);
+
+        gui.addPane(pane);
+        gui.show(player);
+    }
+
+    private void addUpgradeItem(StaticPane pane, Material material, String type, int currentLevel, int x, int y, Player player, ClaimData claimData) {
+        int nextLevel = currentLevel + 1;
+        int maxLvl = type.equals("Heart") ? 6 : 5;
+        int cost = (nextLevel > maxLvl) ? 0 : getUpgradeCost(nextLevel, type);
+
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§eUpgrade " + type);
+            if (nextLevel > maxLvl) {
+                meta.setLore(Arrays.asList("§7Level saat ini: §f" + (type.equals("Heart") ? claimData.getMaxHealth() + " HP" : currentLevel), "§a§lMAX LEVEL"));
+            } else {
+                meta.setLore(Arrays.asList(
+                        "§7Saat ini: §f" + (type.equals("Heart") ? claimData.getMaxHealth() + " HP" : currentLevel),
+                        "§7Berikutnya: §f" + (type.equals("Heart") ? getHeartValue(nextLevel) + " HP" : nextLevel),
+                        "§7Biaya: §b" + cost + " Diamond (Brankas)",
+                        "",
+                        "§eKlik untuk upgrade!"
+                ));
+            }
+            item.setItemMeta(meta);
+        }
+
+        pane.addItem(new GuiItem(item, event -> {
+            if (nextLevel > maxLvl) return;
+            if (claimData.getDiamondBalance() < cost) {
+                player.sendMessage("§cSaldo brankas tidak cukup!");
+                return;
+            }
+
+            claimData.setDiamondBalance(claimData.getDiamondBalance() - cost);
+            
+            switch (type.toLowerCase()) {
+                case "haste": claimData.setPerkHaste(nextLevel); break;
+                case "speed": claimData.setPerkSpeed(nextLevel); break;
+                case "strength": claimData.setPerkStrength(nextLevel); break;
+                case "jump": claimData.setPerkJump(nextLevel); break;
+                case "crop": claimData.setPerkCrop(nextLevel); break;
+                case "turret": claimData.setTurretLevel(nextLevel); break;
+                case "heart": 
+                    claimData.setMaxHealth(getHeartValue(nextLevel)); 
+                    claimData.setHealth(claimData.getMaxHealth());
+                    break;
+            }
+
+            plugin.getChunkManager().saveLandAsync(claimData);
+            player.sendMessage("§a[Upgrade] §fUpgrade §e" + type.toUpperCase() + " §fberhasil!");
+            player.closeInventory();
+            openUpgradeGui(player, claimData);
+        }), x, y);
+    }
+
+    private int getHeartValue(int level) {
+        return switch (level) {
+            case 1 -> 750;
+            case 2 -> 1000;
+            case 3 -> 1500;
+            case 4 -> 2000;
+            case 5 -> 3000;
+            case 6 -> 5000;
+            default -> 500;
+        };
+    }
+
+    private int getUpgradeCost(int level, String type) {
+        String path = switch (type.toLowerCase()) {
+            case "heart" -> "upgrades.heart.level-" + level;
+            case "turret" -> "upgrades.turret.level-" + level;
+            default -> "upgrades.perks.level-" + level;
+        };
+        return plugin.getConfig().getInt(path, 0);
     }
 
     private void addWithdrawItem(StaticPane pane, int amount, int x, int y, Player player, ClaimData claimData) {

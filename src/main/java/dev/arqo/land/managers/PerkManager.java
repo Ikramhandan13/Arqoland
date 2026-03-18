@@ -24,11 +24,11 @@ public class PerkManager implements Listener {
         if (claim.getPerkSpeed() > 0) 
             applyEffect(player, PotionEffectType.SPEED, claim.getPerkSpeed());
         if (claim.getPerkHaste() > 0) 
-            applyEffect(player, PotionEffectType.FAST_DIGGING, claim.getPerkHaste());
+            applyEffect(player, PotionEffectType.HASTE, claim.getPerkHaste());
         if (claim.getPerkStrength() > 0) 
-            applyEffect(player, PotionEffectType.INCREASE_DAMAGE, claim.getPerkStrength());
+            applyEffect(player, PotionEffectType.STRENGTH, claim.getPerkStrength());
         if (claim.getPerkJump() > 0) 
-            applyEffect(player, PotionEffectType.JUMP, claim.getPerkJump());
+            applyEffect(player, PotionEffectType.JUMP_BOOST, claim.getPerkJump());
     }
 
     private void applyEffect(Player player, PotionEffectType type, int level) {
