@@ -1,9 +1,14 @@
 database:
-  host: "127.0.0.1"
-  port: 3306
-  name: "arqoland"
-  username: "root"
-  password: ""
+  # Type can be MYSQL, MARIADB, or SQLITE
+  type: "SQLITE"
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    name: "arqoland"
+    username: "root"
+    password: ""
+  sqlite:
+    file-name: "database.db"
   pool-size: 10
 
 limits:

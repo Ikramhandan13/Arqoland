@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xmlns="http://maven.apache.org/METADATA/1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/METADATA/1.1.0 https://maven.apache.org/xsd/repository-metadata-1.1.0.xsd" modelVersion="1.1.0">
+  <groupId>io.papermc.paper</groupId>
+  <artifactId>paper-api</artifactId>
+  <versioning>
+    <lastUpdated>20260319003201</lastUpdated>
+    <snapshot>
+      <localCopy>true</localCopy>
+    </snapshot>
+    <snapshotVersions>
+      <snapshotVersion>
+        <classifier></classifier>
+        <extension>jar</extension>
+        <value>1.21.1-R0.1-SNAPSHOT</value>
+        <updated>20260319003201</updated>
+      </snapshotVersion>
+      <snapshotVersion>
+        <classifier></classifier>
+        <extension>pom</extension>
+        <value>1.21.1-R0.1-SNAPSHOT</value>
+        <updated>20260319003201</updated>
+      </snapshotVersion>
+    </snapshotVersions>
+  </versioning>
+  <version>1.21.1-R0.1-SNAPSHOT</version>
+</metadata>

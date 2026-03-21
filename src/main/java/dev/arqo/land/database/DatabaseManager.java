@@ -5,8 +5,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import dev.arqo.land.ArqoLand;
 import dev.arqo.land.models.ClaimData;
 import dev.arqo.land.models.LandMember;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
 
 import java.sql.*;
 import java.util.UUID;
@@ -20,12 +18,35 @@ public class DatabaseManager {
     }
 
     public void connect() {
+        String type = plugin.getConfig().getString("database.type", "SQLITE").toUpperCase();
         HikariConfig config = new HikariConfig();
-        config.setDriverClassName("org.mariadb.jdbc.Driver");
-        config.setJdbcUrl("jdbc:mariadb://" + plugin.getConfig().getString("database.host") + ":" + plugin.getConfig().getInt("database.port") + "/" + plugin.getConfig().getString("database.name"));
-        config.setUsername(plugin.getConfig().getString("database.username"));
-        config.setPassword(plugin.getConfig().getString("database.password"));
-        config.setMaximumPoolSize(plugin.getConfig().getInt("database.pool-size"));
+
+        if (type.equals("SQLITE")) {
+            config.setDriverClassName("org.sqlite.JDBC");
+            config.setJdbcUrl("jdbc:sqlite:" + plugin.getDataFolder() + "/" + plugin.getConfig().getString("database.sqlite.file-name", "database.db"));
+            config.setConnectionTestQuery("SELECT 1");
+        } else {
+            String host = plugin.getConfig().getString("database.mysql.host");
+            int port = plugin.getConfig().getInt("database.mysql.port");
+            String name = plugin.getConfig().getString("database.mysql.name");
+            String username = plugin.getConfig().getString("database.mysql.username");
+            String password = plugin.getConfig().getString("database.mysql.password");
+
+            if (type.equals("MARIADB")) {
+                config.setDriverClassName("org.mariadb.jdbc.Driver");
+                config.setJdbcUrl("jdbc:mariadb://" + host + ":" + port + "/" + name);
+            } else {
+                config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+                config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + name);
+            }
+            config.setUsername(username);
+            config.setPassword(password);
+            config.addDataSourceProperty("cachePrepStmts", "true");
+            config.addDataSourceProperty("prepStmtCacheSize", "250");
+            config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        }
+
+        config.setMaximumPoolSize(plugin.getConfig().getInt("database.pool-size", 10));
         config.setConnectionTimeout(10000);
         dataSource = new HikariDataSource(config);
     }

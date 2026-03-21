@@ -1,6 +1,5 @@
 package dev.arqo.land;
 
-import dev.arqo.land.commands.AdminLandCommand;
 import dev.arqo.land.commands.LandCommand;
 import dev.arqo.land.database.DatabaseManager;
 import dev.arqo.land.listeners.PlayerListener;
@@ -13,7 +12,9 @@ import dev.arqo.land.managers.FlagManager;
 import dev.arqo.land.managers.PerkManager;
 import dev.arqo.land.managers.TurretManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import revxrsal.commands.Lamp;
 import revxrsal.commands.bukkit.BukkitLamp;
+import revxrsal.commands.bukkit.actor.BukkitCommandActor;
 
 public class ArqoLand extends JavaPlugin {
 
@@ -79,10 +80,9 @@ public class ArqoLand extends JavaPlugin {
 
     private void registerCommands() {
         // Menggunakan Revxrsal Lamp v4
-        BukkitLamp lamp = BukkitLamp.builder(this).build();
+        Lamp<BukkitCommandActor> lamp = BukkitLamp.builder(this).build();
         
         lamp.register(new LandCommand(this, this.chunkManager, this.economyManager));
-        lamp.register(new AdminLandCommand(this));
     }
 
     private void registerListeners() {
