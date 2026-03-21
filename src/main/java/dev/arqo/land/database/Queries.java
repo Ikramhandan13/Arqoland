@@ -15,7 +15,7 @@ public class Queries {
 
     // CRUD Queries
     public static final String INSERT_LAND = "INSERT INTO arqoland_lands (name, owner_uuid, display_name) VALUES (?, ?, ?);";
-    public static final String UPDATE_LAND = "UPDATE arqoland_lands SET health = ?, max_health = ?, diamond_balance = ?, pvp_enabled = ?, greeting_message = ?, is_public = ?, spawn_world = ?, spawn_x = ?, spawn_y = ?, spawn_z = ?, spawn_yaw = ?, spawn_pitch = ?, flag_mob_spawn = ?, flag_fire_spread = ?, flag_interact = ?, flag_piston = ?, perk_haste = ?, perk_speed = ?, perk_strength = ?, perk_jump = ?, perk_crop = ?, display_name = ?, turret_level = ?, turret_ammo_free = ? WHERE id = ?;";
+    public static final String UPDATE_LAND = "UPDATE arqoland_lands SET name = ?, health = ?, max_health = ?, diamond_balance = ?, pvp_enabled = ?, greeting_message = ?, is_public = ?, spawn_world = ?, spawn_x = ?, spawn_y = ?, spawn_z = ?, spawn_yaw = ?, spawn_pitch = ?, flag_mob_spawn = ?, flag_fire_spread = ?, flag_interact = ?, flag_piston = ?, perk_haste = ?, perk_speed = ?, perk_strength = ?, perk_jump = ?, perk_crop = ?, display_name = ?, turret_level = ?, turret_ammo_free = ? WHERE id = ?;";
     public static final String DELETE_LAND = "DELETE FROM arqoland_lands WHERE id = ?;";
 
     public static final String INSERT_TURRET = "INSERT INTO arqoland_turrets (land_id, world, x, y, z) VALUES (?, ?, ?, ?, ?);";

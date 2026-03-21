@@ -1,8 +1,8 @@
 package dev.arqo.land.placeholders;
 
 import dev.arqo.land.ArqoLand;
-import dev.arqo.land.managers.ChunkManager;
-import dev.arqo.land.models.ClaimData;
+import dev.arqo.land.core.ChunkManager;
+import dev.arqo.land.model.ClaimData;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;

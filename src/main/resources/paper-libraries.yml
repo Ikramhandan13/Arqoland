@@ -1,0 +1,7 @@
+repositories:
+  central: https://repo1.maven.org/maven2/
+  papermc: https://repo.papermc.io/repository/maven-public/
+
+libraries:
+  - org.mariadb.jdbc:mariadb-java-client:3.3.3
+  - org.xerial:sqlite-jdbc:3.45.1.0

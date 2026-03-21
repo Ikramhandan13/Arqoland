@@ -3,8 +3,8 @@ package dev.arqo.land.database;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.arqo.land.ArqoLand;
-import dev.arqo.land.models.ClaimData;
-import dev.arqo.land.models.LandMember;
+import dev.arqo.land.model.ClaimData;
+import dev.arqo.land.model.LandMember;
 
 import java.sql.*;
 import java.util.UUID;
@@ -283,34 +283,35 @@ public class DatabaseManager {
     public void saveLand(ClaimData claim) {
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(Queries.UPDATE_LAND)) {
-            stmt.setInt(1, claim.getHealth());
-            stmt.setInt(2, claim.getMaxHealth());
-            stmt.setInt(3, claim.getDiamondBalance());
-            stmt.setBoolean(4, claim.isPvpEnabled());
-            stmt.setString(5, claim.getGreetingMessage());
-            stmt.setBoolean(6, claim.isPublic());
+            stmt.setString(1, claim.getName());
+            stmt.setInt(2, claim.getHealth());
+            stmt.setInt(3, claim.getMaxHealth());
+            stmt.setInt(4, claim.getDiamondBalance());
+            stmt.setBoolean(5, claim.isPvpEnabled());
+            stmt.setString(6, claim.getGreetingMessage());
+            stmt.setBoolean(7, claim.isPublic());
             
-            stmt.setString(7, claim.getSpawnWorld());
-            stmt.setDouble(8, claim.getSpawnX());
-            stmt.setDouble(9, claim.getSpawnY());
-            stmt.setDouble(10, claim.getSpawnZ());
-            stmt.setFloat(11, claim.getSpawnYaw());
-            stmt.setFloat(12, claim.getSpawnPitch());
+            stmt.setString(8, claim.getSpawnWorld());
+            stmt.setDouble(9, claim.getSpawnX());
+            stmt.setDouble(10, claim.getSpawnY());
+            stmt.setDouble(11, claim.getSpawnZ());
+            stmt.setFloat(12, claim.getSpawnYaw());
+            stmt.setFloat(13, claim.getSpawnPitch());
 
-            stmt.setBoolean(13, claim.isFlagMobSpawn());
-            stmt.setBoolean(14, claim.isFlagFireSpread());
-            stmt.setBoolean(15, claim.isFlagInteract());
-            stmt.setBoolean(16, claim.isFlagPiston());
+            stmt.setBoolean(14, claim.isFlagMobSpawn());
+            stmt.setBoolean(15, claim.isFlagFireSpread());
+            stmt.setBoolean(16, claim.isFlagInteract());
+            stmt.setBoolean(17, claim.isFlagPiston());
             
-            stmt.setInt(17, claim.getPerkHaste());
-            stmt.setInt(18, claim.getPerkSpeed());
-            stmt.setInt(19, claim.getPerkStrength());
-            stmt.setInt(20, claim.getPerkJump());
-            stmt.setInt(21, claim.getPerkCrop());
-            stmt.setString(22, claim.getDisplayName());
-            stmt.setInt(23, claim.getTurretLevel());
-            stmt.setBoolean(24, claim.isTurretAmmoFree());
-            stmt.setInt(25, claim.getId());
+            stmt.setInt(18, claim.getPerkHaste());
+            stmt.setInt(19, claim.getPerkSpeed());
+            stmt.setInt(20, claim.getPerkStrength());
+            stmt.setInt(21, claim.getPerkJump());
+            stmt.setInt(22, claim.getPerkCrop());
+            stmt.setString(23, claim.getDisplayName());
+            stmt.setInt(24, claim.getTurretLevel());
+            stmt.setBoolean(25, claim.isTurretAmmoFree());
+            stmt.setInt(26, claim.getId());
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();

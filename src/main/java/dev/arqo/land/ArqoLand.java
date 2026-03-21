@@ -1,16 +1,16 @@
 package dev.arqo.land;
 
-import dev.arqo.land.commands.LandCommand;
+import dev.arqo.land.command.LandCommand;
 import dev.arqo.land.database.DatabaseManager;
-import dev.arqo.land.listeners.PlayerListener;
-import dev.arqo.land.listeners.ProtectionListener;
-import dev.arqo.land.listeners.RaidListener;
-import dev.arqo.land.managers.ChunkManager;
-import dev.arqo.land.managers.DiscordWebhookManager;
-import dev.arqo.land.managers.EconomyManager;
-import dev.arqo.land.managers.FlagManager;
-import dev.arqo.land.managers.PerkManager;
-import dev.arqo.land.managers.TurretManager;
+import dev.arqo.land.listener.PlayerListener;
+import dev.arqo.land.listener.ProtectionListener;
+import dev.arqo.land.listener.RaidListener;
+import dev.arqo.land.core.ChunkManager;
+import dev.arqo.land.core.DiscordWebhookManager;
+import dev.arqo.land.core.EconomyManager;
+import dev.arqo.land.core.FlagManager;
+import dev.arqo.land.core.PerkManager;
+import dev.arqo.land.core.TurretManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import revxrsal.commands.Lamp;
 import revxrsal.commands.bukkit.BukkitLamp;
