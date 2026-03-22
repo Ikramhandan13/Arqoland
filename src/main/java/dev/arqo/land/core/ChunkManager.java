@@ -6,17 +6,94 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChunkManager {
     private final ArqoLand plugin;
     private final Map<String, ClaimData> chunkCache;
     private final Map<String, ClaimData> landNameCache;
+    private final Set<UUID> borderToggles = ConcurrentHashMap.newKeySet();
 
     public ChunkManager(ArqoLand plugin) {
         this.plugin = plugin;
         this.chunkCache = new ConcurrentHashMap<>();
         this.landNameCache = new ConcurrentHashMap<>();
+        startRecoveryTask();
+    }
+
+    public void startRecoveryTask() {
+        // Recover 2 HP every 5 minutes if not under 100% health
+        if (plugin.isFolia()) {
+            Bukkit.getAsyncScheduler().runAtFixedRate(plugin, task -> runRecoveryCycle(), 1, 5, java.util.concurrent.TimeUnit.MINUTES);
+        } else {
+            Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::runRecoveryCycle, 20 * 60 * 5L, 20 * 60 * 5L);
+        }
+    }
+
+    private void runRecoveryCycle() {
+        for (ClaimData claim : landNameCache.values()) {
+            if (claim.getHealth() < claim.getMaxHealth()) {
+                claim.setHealth(Math.min(claim.getMaxHealth(), claim.getHealth() + 2));
+                saveLandAsync(claim);
+            }
+        }
+    }
+
+    public boolean isFriendly(org.bukkit.entity.Player player, ClaimData claim) {
+        if (claim == null) return true;
+        UUID uuid = player.getUniqueId();
+        if (player.hasPermission("arqoland.admin") || player.isOp()) return true;
+        if (claim.getOwner().equals(uuid)) return true;
+        
+        for (dev.arqo.land.model.LandMember member : claim.getMembers()) {
+            if (member.getUuid().equals(uuid)) return true;
+        }
+        
+        // Check Allies
+        for (int allyId : claim.getAlliedLands()) {
+            ClaimData allyLand = landNameCache.values().stream()
+                    .filter(c -> c.getId() == allyId).findFirst().orElse(null);
+            if (allyLand != null) {
+                if (allyLand.getOwner().equals(uuid) || 
+                    allyLand.getMembers().stream().anyMatch(m -> m.getUuid().equals(uuid))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean toggleBorder(org.bukkit.entity.Player player) {
+        if (borderToggles.contains(player.getUniqueId())) {
+            borderToggles.remove(player.getUniqueId());
+            return false;
+        } else {
+            borderToggles.add(player.getUniqueId());
+            startBorderLoop(player);
+            return true;
+        }
+    }
+
+    private void startBorderLoop(org.bukkit.entity.Player player) {
+        if (!borderToggles.contains(player.getUniqueId())) return;
+        
+        if (plugin.isFolia()) {
+            Bukkit.getRegionScheduler().runDelayed(plugin, player.getLocation(), task -> {
+                if (borderToggles.contains(player.getUniqueId()) && player.isOnline()) {
+                    showBorderOnce(player, player.getLocation().getChunk());
+                    startBorderLoop(player);
+                }
+            }, 40L);
+        } else {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (borderToggles.contains(player.getUniqueId()) && player.isOnline()) {
+                    showBorderOnce(player, player.getLocation().getChunk());
+                    startBorderLoop(player);
+                }
+            }, 40L);
+        }
     }
 
     public String getChunkKey(Chunk chunk) {

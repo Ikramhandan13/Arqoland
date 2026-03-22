@@ -2,6 +2,7 @@ package dev.arqo.land.core;
 
 import dev.arqo.land.ArqoLand;
 import dev.arqo.land.model.ClaimData;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -18,6 +19,34 @@ public class PerkManager implements Listener {
 
     public PerkManager(ArqoLand plugin) {
         this.plugin = plugin;
+        startPerkTicker();
+    }
+
+    private void startPerkTicker() {
+        if (plugin.isFolia()) {
+            Bukkit.getAsyncScheduler().runAtFixedRate(plugin, task -> tickPerks(), 1, 5, java.util.concurrent.TimeUnit.SECONDS);
+        } else {
+            Bukkit.getScheduler().runTaskTimer(plugin, this::tickPerks, 100L, 100L);
+        }
+    }
+
+    private void tickPerks() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            ClaimData claim = plugin.getChunkManager().getClaimAt(player.getLocation().getChunk());
+            if (claim == null) continue;
+
+            if (plugin.getChunkManager().isFriendly(player, claim)) {
+                applyPerks(player, claim);
+            } else {
+                // Intruder Effects (Poison / Slowness if land is upgraded)
+                if (claim.getTurretLevel() >= 2) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 1));
+                }
+                if (claim.getTurretLevel() >= 4) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 120, 0));
+                }
+            }
+        }
     }
 
     public void applyPerks(Player player, ClaimData claim) {

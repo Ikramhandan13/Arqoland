@@ -2,15 +2,24 @@ package dev.arqo.land.core;
 
 import dev.arqo.land.ArqoLand;
 import dev.arqo.land.model.ClaimData;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Tameable;
+import org.bukkit.entity.Villager;
+import org.bukkit.entity.Animals;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -18,9 +27,12 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TurretManager {
     private final ArqoLand plugin;
+    private final Map<Location, Long> notificationCooldown = new HashMap<>();
 
     public TurretManager(ArqoLand plugin) {
         this.plugin = plugin;
@@ -29,9 +41,9 @@ public class TurretManager {
 
     private void startTurretTicker() {
         if (plugin.isFolia()) {
-            Bukkit.getAsyncScheduler().runAtFixedRate(plugin, task -> tickTurrets(), 1, 500, java.util.concurrent.TimeUnit.MILLISECONDS);
+            Bukkit.getAsyncScheduler().runAtFixedRate(plugin, task -> tickTurrets(), 1, 1, java.util.concurrent.TimeUnit.SECONDS);
         } else {
-             Bukkit.getScheduler().runTaskTimer(plugin, this::tickTurrets, 10L, 10L);
+             Bukkit.getScheduler().runTaskTimer(plugin, this::tickTurrets, 20L, 20L);
         }
     }
 
@@ -53,102 +65,125 @@ public class TurretManager {
         Block block = loc.getBlock();
         if (block.getType() != Material.DISPENSER) return;
 
-        // Range dinamis berdasarkan level
         int level = claim.getTurretLevel();
-        double range = switch (level) {
-            case 0, 1 -> 16;
-            case 2 -> 24;
-            case 3 -> 32;
-            case 4 -> 48;
-            case 5 -> 64;
-            default -> 16;
-        };
+        double range = 16 + (level * 4); 
 
         Collection<Entity> nearby = loc.getWorld().getNearbyEntities(loc, range, range, range);
-        Player target = null;
-        Player enemyTarget = null;
+        LivingEntity finalTarget = null;
 
         for (Entity entity : nearby) {
-            if (entity instanceof Player p) {
-                if (isFriendly(p, claim)) continue;
-                if (!p.hasLineOfSight(block.getLocation())) continue;
-                
-                // Prioritas musuh (Enemy Land)
-                ClaimData pLand = plugin.getChunkManager().getClaimAt(p.getLocation().getChunk());
-                if (pLand != null && claim.getEnemyLands().contains(pLand.getId())) {
-                    enemyTarget = p;
-                    break; 
-                }
-                
-                if (target == null) target = p;
+            if (!(entity instanceof LivingEntity living)) continue;
+            if (living.isDead()) continue;
+
+            if (living instanceof Player p) {
+                if (plugin.getChunkManager().isFriendly(p, claim)) continue;
+                if (!p.hasLineOfSight(block.getLocation().add(0.5, 0.5, 0.5))) continue;
+                finalTarget = p;
+                break;
+            }
+
+            if (living instanceof Monster) {
+                if (finalTarget == null) finalTarget = living;
+            }
+            
+            if (living instanceof Villager || living instanceof Animals || living instanceof Tameable) {
+                continue;
             }
         }
 
-        Player finalTarget = (enemyTarget != null) ? enemyTarget : target;
         if (finalTarget != null) {
+            // DETEKSI HALANGAN BLOK
+            Location dispenserCenter = loc.clone().add(0.5, 0.5, 0.5);
+            Vector direction = finalTarget.getEyeLocation().toVector().subtract(dispenserCenter.toVector()).normalize();
+            Block nextBlock = dispenserCenter.clone().add(direction.clone().multiply(1.0)).getBlock();
+
+            if (nextBlock.getType().isSolid() && !nextBlock.isPassable()) {
+                notifyBlocked(claim, loc);
+                return;
+            }
+
             shoot(block, finalTarget, claim);
         }
     }
 
-    private boolean isFriendly(Player player, ClaimData claim) {
-        if (claim.getOwner().equals(player.getUniqueId())) return true;
-        if (claim.getMembers().stream().anyMatch(m -> m.getUuid().equals(player.getUniqueId()))) return true;
-        
-        // Cek apakah player adalah bagian dari Aliansi
-        for (int allyId : claim.getAlliedLands()) {
-            ClaimData allyLand = plugin.getChunkManager().getLandNameCache().values().stream()
-                    .filter(c -> c.getId() == allyId).findFirst().orElse(null);
-            if (allyLand != null) {
-                if (allyLand.getOwner().equals(player.getUniqueId()) || 
-                    allyLand.getMembers().stream().anyMatch(m -> m.getUuid().equals(player.getUniqueId()))) {
-                    return true;
-                }
-            }
+    private void notifyBlocked(ClaimData claim, Location loc) {
+        long now = System.currentTimeMillis();
+        if (notificationCooldown.getOrDefault(loc, 0L) > now) return;
+
+        notificationCooldown.put(loc, now + 10000); // Cooldown 10 detik
+
+        Player owner = Bukkit.getPlayer(claim.getOwner());
+        if (owner != null && owner.isOnline()) {
+            owner.sendMessage("§c§l[PERINGATAN] §fTurret di §e" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + " §cterhalang blok! Segera cari tempat terbuka.");
+            owner.sendActionBar(Component.text("§c§lTURRET TERHALANG! Cari tempat lain!"));
+            owner.playSound(owner.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1.0f, 0.5f);
         }
-        
-        return false;
     }
 
-    private void shoot(Block dispenserBlock, Player target, ClaimData claim) {
+    private void shoot(Block dispenserBlock, LivingEntity target, ClaimData claim) {
         BlockState state = dispenserBlock.getState();
         if (!(state instanceof Container container)) return;
 
         Inventory inv = container.getInventory();
         int level = claim.getTurretLevel();
 
-        // Check Ammo
         if (!claim.isTurretAmmoFree()) {
             if (!inv.contains(Material.ARROW)) return;
             inv.removeItem(new ItemStack(Material.ARROW, 1));
         }
 
-        Location spawnLoc = dispenserBlock.getLocation().add(0.5, 0.5, 0.5);
-        Vector direction = target.getLocation().add(0, 1.5, 0).toVector().subtract(spawnLoc.toVector()).normalize();
+        Location dispenserCenter = dispenserBlock.getLocation().add(0.5, 0.5, 0.5);
+        Vector direction = target.getEyeLocation().toVector().subtract(dispenserCenter.toVector()).normalize();
+        Location spawnLoc = dispenserCenter.clone().add(direction.clone().multiply(1.2));
 
         Arrow arrow = spawnLoc.getWorld().spawn(spawnLoc, Arrow.class);
-        arrow.setVelocity(direction.multiply(2));
+        arrow.setVelocity(direction.multiply(2.5)); 
         arrow.setShooter(null);
+        arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
 
-        // DAMAGE & EFFECTS BASED ON LEVEL
-        double baseDamage = 4.0;
-        
-        if (level >= 3) {
-            arrow.setFireTicks(200); // Panah Api
-        }
-        
-        if (level == 4) {
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 10)); // Freeze 2 detik
-        }
-        
-        if (level == 5) {
-            baseDamage = 12.0; // Damage sakit
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 10)); // Freeze 5 detik
-            arrow.setFireTicks(400);
-        } else {
-            baseDamage += (level * 1.5);
-        }
+        spawnLoc.getWorld().playSound(spawnLoc, Sound.ENTITY_ARROW_SHOOT, 1.0f, 1.2f);
 
+        double baseDamage = 6.0 + (level * 2.0); 
         arrow.setDamage(baseDamage);
+        
+        arrow.setFireTicks(200); 
+        Bukkit.getScheduler().runTaskTimer(plugin, task -> {
+            if (arrow.isDead() || arrow.isOnGround()) {
+                task.cancel();
+                return;
+            }
+            arrow.getWorld().spawnParticle(Particle.FLAME, arrow.getLocation(), 2, 0.02, 0.02, 0.02, 0.01);
+            arrow.getWorld().spawnParticle(Particle.SMOKE, arrow.getLocation(), 1, 0, 0, 0, 0);
+        }, 1L, 1L);
+
+        applyStatusEffects(target, level);
+    }
+
+    private void applyStatusEffects(LivingEntity target, int level) {
+        if (level <= 0) return;
+
+        switch (level) {
+            case 1:
+                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 0));
+                break;
+            case 2:
+                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1));
+                target.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 60, 0));
+                break;
+            case 3:
+                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 80, 2));
+                target.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 80, 1));
+                break;
+            case 4:
+                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 100, 3));
+                target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 0));
+                break;
+            case 5:
+                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 4));
+                target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 100, 1));
+                target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0));
+                break;
+        }
     }
 
     public void registerTurret(ClaimData claim, Location loc) {

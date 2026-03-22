@@ -69,6 +69,7 @@ public class LandCommand {
         sender.sendMessage("§f/al spawn [land] §7- Teleport ke spawn");
         sender.sendMessage("§f/al rename <id> §7- Ganti ID Wilayah");
         sender.sendMessage("§f/al setdisplayname <nama> §7- Ganti Nama Tampilan");
+        sender.sendMessage("§f/al topSetoran/topBrankas §7- Leaderboard");
         sender.sendMessage("§f/al addmember/kickmember <player>");
         sender.sendMessage("§f/al pvp <on/off> §7- Toggle PvP");
         sender.sendMessage("§f/al ally/enemy <land>");
@@ -152,7 +153,21 @@ public class LandCommand {
 
     @Subcommand("spawn")
     public void spawn(Player player, @Optional String name) {
-        ClaimData claim = (name == null) ? chunkManager.getClaimAt(player.getLocation().getChunk()) : chunkManager.getClaimByName(name);
+        ClaimData claim;
+        if (name == null) {
+            // Priority 1: Current land
+            claim = chunkManager.getClaimAt(player.getLocation().getChunk());
+            // Priority 2: Player's own land if not in a land or current land isn't theirs
+            if (claim == null || (!claim.getOwner().equals(player.getUniqueId()) && 
+                claim.getMembers().stream().noneMatch(m -> m.getUuid().equals(player.getUniqueId())))) {
+                claim = chunkManager.getLandNameCache().values().stream()
+                        .filter(c -> c.getOwner().equals(player.getUniqueId()))
+                        .findFirst().orElse(claim);
+            }
+        } else {
+            claim = chunkManager.getClaimByName(name);
+        }
+
         if (claim == null) {
             player.sendMessage("§cWilayah tidak ditemukan!");
             return;
@@ -296,9 +311,43 @@ public class LandCommand {
         dev.arqo.land.util.MapVisualizer.sendMap(player, chunkManager);
     }
 
+    @Subcommand("topBrankas")
+    public void topBrankas(CommandSender sender) {
+        List<ClaimData> lands = new ArrayList<>(chunkManager.getLandNameCache().values());
+        lands.sort((a, b) -> Integer.compare(b.getDiamondBalance(), a.getDiamondBalance()));
+        
+        sender.sendMessage("§e=== Top 10 Brankas (Diamond) ===");
+        for (int i = 0; i < Math.min(10, lands.size()); i++) {
+            ClaimData l = lands.get(i);
+            sender.sendMessage("§f" + (i + 1) + ". §e" + l.getDisplayName() + " §7- §b" + l.getDiamondBalance() + " Diamond");
+        }
+    }
+
+    @Subcommand("topSetoran")
+    public void topSetoran(CommandSender sender) {
+        Map<ClaimData, Integer> landContributions = new HashMap<>();
+        for (ClaimData claim : chunkManager.getLandNameCache().values()) {
+            int total = claim.getMembers().stream().mapToInt(LandMember::getTotalContributed).sum();
+            landContributions.put(claim, total);
+        }
+
+        List<ClaimData> sorted = new ArrayList<>(landContributions.keySet());
+        sorted.sort((a, b) -> Integer.compare(landContributions.get(b), landContributions.get(a)));
+
+        sender.sendMessage("§e=== Top 10 Total Setoran Wilayah ===");
+        for (int i = 0; i < Math.min(10, sorted.size()); i++) {
+            ClaimData l = sorted.get(i);
+            sender.sendMessage("§f" + (i + 1) + ". §e" + l.getDisplayName() + " §7- §b" + landContributions.get(l) + " Diamond");
+        }
+    }
+
     @Subcommand("border")
     public void showBorder(Player player) {
-        chunkManager.showBorder(player);
+        boolean enabled = chunkManager.toggleBorder(player);
+        String status = enabled ? "§aON" : "§cOFF";
+        player.sendActionBar(net.kyori.adventure.text.Component.text("§eVisualisasi Border: " + status));
+        player.sendMessage("§e[Border] §fVisualisasi border diatur ke: " + status);
+        player.playSound(player.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 1f, enabled ? 1.2f : 0.8f);
     }
 
     @Subcommand("admin")

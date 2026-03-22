@@ -31,16 +31,7 @@ public class ProtectionListener implements Listener {
 
     private boolean canBuild(Player player, ClaimData claim) {
         if (claim == null) return true;
-        UUID uuid = player.getUniqueId();
-        
-        if (player.hasPermission("arqoland.admin") || player.isOp()) return true;
-        if (claim.getOwner().equals(uuid)) return true;
-        
-        for (LandMember member : claim.getMembers()) {
-            if (member.getUuid().equals(uuid)) return true;
-        }
-        
-        return false;
+        return chunkManager.isFriendly(player, claim);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
